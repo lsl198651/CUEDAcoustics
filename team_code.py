@@ -117,27 +117,27 @@ def run_challenge_model(model, data, recordings, verbose):
         murmur_labels = np.zeros(3, dtype=np.int_)
         murmur_labels[prediction_to_index[prediction]] = 1
 
-    ordered_array = [full_features.get(k, None) for k in model[0]["tree_outcome"].feature_names_]
-    probabilities = []
-    for model_fold in model:
-        probabilities.append(
-            model_fold["tree_outcome"].predict(ordered_array, prediction_type="Probability")
-        )
-    outcome_probabilities = np.mean(probabilities, axis=0)
+    # ordered_array = [full_features.get(k, None) for k in model[0]["tree_outcome"].feature_names_]
+    # probabilities = []
+    # for model_fold in model:
+    #     probabilities.append(
+    #         model_fold["tree_outcome"].predict(ordered_array, prediction_type="Probability")
+    #     )
+    # outcome_probabilities = np.mean(probabilities, axis=0)
 
-    # Choose label with higher probability.
-    outcome_labels = np.zeros(len(outcome_probabilities), dtype=np.int_)
-    outcome_class_order = list(model_fold["tree_outcome"].classes_)
-    abnormal_idx = outcome_class_order.index("Abnormal")
-    idx = abnormal_idx if outcome_probabilities[abnormal_idx] > model_fold["outcome_threshold"] else 1 - abnormal_idx
-    outcome_labels[idx] = 1
+    # # Choose label with higher probability.
+    # outcome_labels = np.zeros(len(outcome_probabilities), dtype=np.int_)
+    # outcome_class_order = list(model_fold["tree_outcome"].classes_)
+    # abnormal_idx = outcome_class_order.index("Abnormal")
+    # idx = abnormal_idx if outcome_probabilities[abnormal_idx] > model_fold["outcome_threshold"] else 1 - abnormal_idx
+    # outcome_labels[idx] = 1
 
     if USE_MURMUR_DECISION_TREE:
-        class_order = list(model_fold["tree_murmur"].classes_) + outcome_class_order
+        class_order = list(model_fold["tree_murmur"].classes_) #+ outcome_class_order
     else:
-        class_order = ["Present", "Unknown", "Absent"] + outcome_class_order
-    labels = list(murmur_labels) + list(outcome_labels)
-    probabilities = list(murmur_probabilities) + list(outcome_probabilities)
+        class_order = ["Present", "Unknown", "Absent"]# + outcome_class_order
+    labels = list(murmur_labels)# + list(outcome_labels)
+    probabilities = list(murmur_probabilities) #+ list(outcome_probabilities)
     return class_order, labels, probabilities
 
 
@@ -163,6 +163,8 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
     # Load patient information from files and assign stratified folds
     patient_df = load_patient_files(data_folder, stop_frac=0.1 if quick else 1)
     print(f"Training with {len(patient_df)} patients")
+    # 看下这个数据多少
+    # 分折
     patient_df = create_folds(patient_df)
 
     # ### Part 1 ###
@@ -179,7 +181,6 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
                 raise ValueError(f"Recording loc for {recording_path} is {recording_loc}")
 
             # Assign murmur label to specific recording
-            assert row.murmur_label in {"Present", "Absent", "Unknown"}
             if row.murmur_label == "Present" and recording_loc not in row.murmur_locations:
                 rec_murmur_label = "Absent"
             else:
@@ -194,6 +195,7 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
                     "val_fold": row.val_fold,
                 }
             )
+            # 这里应该是每一个wav一条数据
     recording_df = pd.DataFrame.from_records(recording_rows, index="recording")
 
     shared_feature_cache = {}
@@ -226,7 +228,7 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
                 train_files=train_recording_df.index,
                 train_labels=train_recording_df[murmur_label_col],
                 train_timings=train_recording_df.murmur_timing,
-                val_files=val_recording_df.index,
+                val_files=val_recording_df.index,#这是啥？
                 val_labels=val_recording_df[murmur_label_col],
                 val_timings=val_recording_df.murmur_timing,
                 shared_feature_cache=shared_feature_cache,
@@ -439,6 +441,8 @@ def load_patient_files(data_folder, start_frac=0, stop_frac=1):
 
         # Load the current patient data and recordings.
         current_patient_data = load_patient_data(patient_files[i])
+        murmur =get_murmur(current_patient_data)
+        # if murmur in {"Absent", "Present"}:
         num_locations = get_num_locations(current_patient_data)
         recording_information = current_patient_data.split("\n")[1 : num_locations + 1]
 
@@ -457,7 +461,6 @@ def load_patient_files(data_folder, start_frac=0, stop_frac=1):
             "murmur_locations": get_murmur_locations(current_patient_data),
             "recordings": rec_files,
         }
-
     return pd.DataFrame.from_dict(rows, orient="index")
 
 

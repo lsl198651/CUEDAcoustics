@@ -122,13 +122,22 @@ def train_model(model_folder, fold, train_dataset, valid_dataset, use_gpu, verbo
         with torch.no_grad():
             model.eval()
             val_losses = []
+            val_outcome=[]
+            val_target=[]
             for val_features, val_labels, val_lengths in val_dataloader:
                 if use_gpu:
                     val_features = val_features.cuda()
                     val_labels = val_labels.cuda()
                 out = model(val_features, val_lengths)
+                val_outcome.extend(out.cpu().detch())
+                val_target.extend(val_labels.cpu().detch())
                 loss = criterion(out, val_labels)
                 val_losses.append(loss * val_features.shape[0])
+            # 这是aegments的
+            # acc=binary_accuracy(out,target)
+            # roc,prc
+            # patient的：
+            
             loss = sum(val_losses) / len(valid_dataset)
         print(
                 "TRAINING_MAX_EPOCHS | running_loss | loss.item()| early_stop_counter"
