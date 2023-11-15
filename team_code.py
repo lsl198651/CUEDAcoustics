@@ -22,7 +22,7 @@ import pandas as pd
 import sklearn.metrics
 import sklearn.model_selection
 import torch
-
+from torcheval.metrics.functional import binary_auprc, binary_auroc, binary_f1_score, binary_confusion_matrix, binary_accuracy, binary_precision, binary_recall
 from helper_code import *
 
 from src import segmenter, decision_tree, neural_networks
@@ -165,7 +165,7 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
     print(f"Training with {len(patient_df)} patients")
     # 看下这个数据多少
     # 分折
-    patient_df = create_folds(patient_df)
+    patient_df = create_folds(patient_df)#942*11
 
     # ### Part 1 ###
     # Train cross-validated neural network to predict heart sound category at each timestep
@@ -207,8 +207,8 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
 
     # We only want to train the murmur segmentation on recordings that have a murmur label
     # (i.e. not those recordings labelled as 'Unknown')
-    recording_df_gq = recording_df[recording_df["patient_murmur_label"] != "Unknown"]
-    recording_df_bq = recording_df[recording_df["patient_murmur_label"] == "Unknown"]
+    recording_df_gq = recording_df[recording_df["patient_murmur_label"] != "Unknown"]#3006*4
+    # recording_df_bq = recording_df[recording_df["patient_murmur_label"] == "Unknown"]
 
     if not load_old_file:
 
@@ -240,19 +240,19 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
             for k, v in val_fold_results.items():
                 val_results[k].append(v)
 
-            # Make a prediction for the bad quality "unknown" labelled signals
-            # because we will need these predictions to train the decision tree
-            unknown_posteriors = neural_networks.predict_files(
-                model=model,
-                data_folder=data_folder,
-                files=recording_df_bq.index,
-                labels=recording_df_bq[murmur_label_col],
-                timings=recording_df_bq.murmur_timing,
-                cache=shared_feature_cache,
-                gpu=gpu
-            )
-            for k, v in unknown_posteriors.items():
-                val_results[k].append(v)
+            # # Make a prediction for the bad quality "unknown" labelled signals
+            # # because we will need these predictions to train the decision tree
+            # unknown_posteriors = neural_networks.predict_files(
+            #     model=model,
+            #     data_folder=data_folder,
+            #     files=recording_df_bq.index,
+            #     labels=recording_df_bq[murmur_label_col],
+            #     timings=recording_df_bq.murmur_timing,
+            #     cache=shared_feature_cache,
+            #     gpu=gpu
+            # )
+            # for k, v in unknown_posteriors.items():
+            #     val_results[k].append(v)
 
 
         # ### Part 2 ###
@@ -304,22 +304,22 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
             "label": row["murmur_label"],
             "fold": row.val_fold
         }
-        val_outcome_predictions[index] = {
-            "prediction": "Normal" if prediction == "Absent" else "Abnormal",
-            "probabilities": [],
-            "label": row["outcome_label"],
-            "fold": row.val_fold
-        }
+        # val_outcome_predictions[index] = {
+        #     "prediction": "Normal" if prediction == "Absent" else "Abnormal",
+        #     "probabilities": [],
+        #     "label": row["outcome_label"],
+        #     "fold": row.val_fold
+        # }
 
-    print("WITHOUT DECISION TREE")
-    score = compute_cross_val_weighted_murmur_accuracy(val_murmur_predictions)
-    print(f"Weighted murmur accuracy = {score:.3f}")
+    print("====WITHOUT DECISION TREE====")
+    compute_cross_val_weighted_murmur_accuracy(val_murmur_predictions)
+    # print(f"Weighted murmur accuracy = {score:.3f}")
 
-    outcome_score = compute_cross_val_outcome_score(val_outcome_predictions)
-    print(f"Outcome score = {outcome_score:.0f}")
+    # outcome_score = compute_cross_val_outcome_score(val_outcome_predictions)
+    # print(f"Outcome score = {outcome_score:.0f}")
 
 
-    print("WITH DECISION TREE")
+    print("---WITH DECISION TREE----")
 
     if USE_MURMUR_DECISION_TREE:
         val_murmur_predictions = {}
@@ -335,39 +335,39 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
             for k, v in val_fold_predictions.items():
                 val_murmur_predictions[k] = {**v, "fold": fold}
 
-        score = compute_cross_val_weighted_murmur_accuracy(val_murmur_predictions)
-        print(f"Weighted murmur accuracy = {score:.3f}")
+        compute_cross_val_weighted_murmur_accuracy(val_murmur_predictions)
+        # print(f"Weighted murmur accuracy = {score:.3f}")
 
-    val_outcome_predictions = {}
-    for fold in fold_names:
-        val_fold_outcome_predictions = decision_tree.train_and_validate_model(
-            train_df=df.loc[df["val_fold"] != fold],
-            val_df=df.loc[df["val_fold"] == fold],
-            model_folder=model_folder,
-            fold=fold,
-            target_name="outcome_label",
-            class_weights={"Abnormal": 1.8, "Normal": 1}
-        )
-        for k, v in val_fold_outcome_predictions.items():
-            val_outcome_predictions[k] = {**v, "fold": fold}
+    # val_outcome_predictions = {}
+    # for fold in fold_names:
+    #     val_fold_outcome_predictions = decision_tree.train_and_validate_model(
+    #         train_df=df.loc[df["val_fold"] != fold],
+    #         val_df=df.loc[df["val_fold"] == fold],
+    #         model_folder=model_folder,
+    #         fold=fold,
+    #         target_name="outcome_label",
+    #         class_weights={"Abnormal": 1.8, "Normal": 1}
+    #     )
+    #     for k, v in val_fold_outcome_predictions.items():
+    #         val_outcome_predictions[k] = {**v, "fold": fold}
 
 
-    df = pd.DataFrame.from_dict(val_outcome_predictions, orient="index")
-    df.to_csv(model_folder / "outcome_predictions.csv")
+    # df = pd.DataFrame.from_dict(val_outcome_predictions, orient="index")
+    # df.to_csv(model_folder / "outcome_predictions.csv")
 
-    outcome_score, threshold = choose_outcome_threshold(df)
-    print(f"Outcome score = {outcome_score:.0f} (threshold = {threshold:.03f})")
+    # outcome_score, threshold = choose_outcome_threshold(df)
+    # print(f"Outcome score = {outcome_score:.0f} (threshold = {threshold:.03f})")
 
-    settings = {
-        "threshold": threshold
-    }
-    with (model_folder / "settings.json").open("w") as f:
-        json.dump(settings, f)
+    # settings = {
+    #     "threshold": threshold
+    # }
+    # with (model_folder / "settings.json").open("w") as f:
+    # #     json.dump(settings, f)
 
-    if verbose >= 1:
-        print("Done.")
+    # # if verbose >= 1:
+    # #     print("Done.")
 
-    return score, outcome_score
+    # return score, outcome_score
 
 
 def choose_outcome_threshold(df):
@@ -486,24 +486,40 @@ def print_confusion_matrix(matrix, classes):
         print(row)
 
 
-def compute_cross_val_weighted_murmur_accuracy(val_predictions, print=True):
-    df = pd.DataFrame.from_dict(val_predictions, orient="index")
+def compute_cross_val_weighted_murmur_accuracy(val_predictions):
+    target_all=[]
+    output_all=[]
+    for id,results in val_predictions:
+        target=results['label']
+        a=1 if target=='Present' else 0
+        target_all.append(a)
+        output=results['prediction']
+        b=1 if target=='Present' else 0
+        output_all.append(b)
+    # df = pd.DataFrame.from_dict(val_predictions, orient="index")
 
     # Define order of classes in confusion matrix (and corresponding score weights)
-    class_order = ["Present", "Unknown", "Absent"]
-    matrix_weights = np.asarray([
-        [5, 3, 1],
-        [5, 3, 1],
-        [5, 3, 1]
-    ]).astype(float)
+    # class_order = ["Present", "Absent"]# "Unknown",
+    # matrix_weights = np.asarray([
+    #     [5, 3, 1],
+    #     [5, 3, 1],
+    #     [5, 3, 1]
+    # ]).astype(float)
 
-    conf_matrix = sklearn.metrics.confusion_matrix(df.label, df.prediction, labels=class_order).T
+    # conf_matrix = sklearn.metrics.confusion_matrix(df.label, df.prediction, labels=class_order).T
+    test_input, test_target = torch.tensor(output_all), torch.tensor(target_all)
+    test_auprc = binary_auprc(test_input, test_target)
+    test_auroc = binary_auroc(test_input, test_target)
+    test_acc = binary_accuracy(test_input, test_target)
+    test_f1 = binary_f1_score(test_input, test_target)
+    # test_cm = binary_confusion_matrix(test_input, test_target)
+    print(f"acc:{test_acc}\nroc:{test_auroc}\nprc{test_auprc}\nf1:{test_f1}")
     
-    if print:
-        print_confusion_matrix(conf_matrix, class_order)
-    weighted_conf = matrix_weights * conf_matrix
-    if print:
-        print_confusion_matrix(weighted_conf.astype(int), class_order)
+    # if print:
+    #     print_confusion_matrix(conf_matrix, class_order)
+    # weighted_conf = matrix_weights * conf_matrix
+    # if print:
+    #     print_confusion_matrix(weighted_conf.astype(int), class_order)
 
     # print(sklearn.metrics.classification_report(df.label, df.prediction, labels=class_order))
 
@@ -515,7 +531,7 @@ def compute_cross_val_weighted_murmur_accuracy(val_predictions, print=True):
     # output = np.stack(df.probabilities)
     # print(compute_auc(labels, output))
 
-    return np.trace(weighted_conf) / np.sum(weighted_conf)
+    # return np.trace(weighted_conf) / np.sum(weighted_conf)
 
 
 def compute_outcome_score(prediction, label, print_matrix=False):

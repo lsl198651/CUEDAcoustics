@@ -24,11 +24,11 @@ WINDOW_LENGTH = 0.050 # seconds
 FREQUENCY_SAMPLING = 4000 # Hz, fixed for all recordings
 FREQUENCY_HIGH = 800 # Hz
 TRAINING_SEQUENCE_LENGTH = 6 # seconds
-TRAINING_BATCH_SIZE = 32
+TRAINING_BATCH_SIZE = 128
 TRAINING_VAL_BATCH_SIZE = 128
 TRAINING_LR = 1e-4
 TRAINING_PATIENCE = 10
-TRAINING_MAX_EPOCHS = 1000
+TRAINING_MAX_EPOCHS = 100
 
 
 def train_and_validate_model(
@@ -129,8 +129,8 @@ def train_model(model_folder, fold, train_dataset, valid_dataset, use_gpu, verbo
                     val_features = val_features.cuda()
                     val_labels = val_labels.cuda()
                 out = model(val_features, val_lengths)
-                val_outcome.extend(out.cpu().detch())
-                val_target.extend(val_labels.cpu().detch())
+                # val_outcome.extend(out.detch().cpu())
+                # val_target.extend(val_labels.cpu().detch())
                 loss = criterion(out, val_labels)
                 val_losses.append(loss * val_features.shape[0])
             # 这是aegments的
@@ -139,9 +139,9 @@ def train_model(model_folder, fold, train_dataset, valid_dataset, use_gpu, verbo
             # patient的：
             
             loss = sum(val_losses) / len(valid_dataset)
-        print(
-                "TRAINING_MAX_EPOCHS | running_loss | loss.item()| early_stop_counter"
-            )
+        # print(
+        #         "TRAINING_MAX_EPOCHS | running_loss | loss.item()| early_stop_counter"
+        #     )
         if verbose >= 2:
             print(
                 f"{ep:04d}/{TRAINING_MAX_EPOCHS} | {running_loss / i:.3f} | {loss.item():.3f} | {early_stop_counter:02d}"
