@@ -130,7 +130,9 @@ def train_model(model_folder, fold, train_dataset, valid_dataset, use_gpu, verbo
                 loss = criterion(out, val_labels)
                 val_losses.append(loss * val_features.shape[0])
             loss = sum(val_losses) / len(valid_dataset)
-
+        print(
+                "TRAINING_MAX_EPOCHS | running_loss | loss.item()| early_stop_counter"
+            )
         if verbose >= 2:
             print(
                 f"{ep:04d}/{TRAINING_MAX_EPOCHS} | {running_loss / i:.3f} | {loss.item():.3f} | {early_stop_counter:02d}"
