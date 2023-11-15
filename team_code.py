@@ -489,7 +489,7 @@ def print_confusion_matrix(matrix, classes):
 def compute_cross_val_weighted_murmur_accuracy(val_predictions):
     target_all=[]
     output_all=[]
-    for id,results in val_predictions:
+    for id,results in val_predictions.items():
         target=results['label']
         a=1 if target=='Present' else 0
         target_all.append(a)
