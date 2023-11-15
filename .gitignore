@@ -8,3 +8,4 @@ notebooks/
 catboost_info/
 *.pyc
 .devcontainer/
+*.pyx
