@@ -1,0 +1,10 @@
+.vscode/
+__pycache__/
+.ipynb_checkpoints/
+model/
+model_runs/
+test_outputs/
+notebooks/
+catboost_info/
+*.pyc
+.devcontainer/
