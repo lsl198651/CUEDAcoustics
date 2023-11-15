@@ -27,7 +27,7 @@ from helper_code import *
 
 from src import segmenter, decision_tree, neural_networks
 
-USE_MURMUR_DECISION_TREE = False
+USE_MURMUR_DECISION_TREE = True
 
 ################################################################################
 #
