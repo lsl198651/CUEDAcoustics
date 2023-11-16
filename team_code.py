@@ -112,7 +112,7 @@ def run_challenge_model(model, data, recordings, verbose):
     else:
         prediction = decide_murmur_outcome(full_features)
         murmur_probabilities = np.zeros(3)
-        prediction_to_index = {"Present": 0, "Unknown": 1, "Absent": 2}
+        prediction_to_index = {"Present": 0, "Absent": 1}
         murmur_probabilities[prediction_to_index[prediction]] = 1
         murmur_labels = np.zeros(3, dtype=np.int_)
         murmur_labels[prediction_to_index[prediction]] = 1
@@ -486,37 +486,40 @@ def print_confusion_matrix(matrix, classes):
         print(row)
 
 
-def compute_cross_val_weighted_murmur_accuracy(val_predictions):
-    target_all=[]
-    output_all=[]
-    for id,results in val_predictions.items():
-        target=results['label']
-        a=1 if target=='Present' else 0
-        target_all.append(a)
-        output=results['prediction']
-        b=1 if target=='Present' else 0
-        output_all.append(b)
-    # df = pd.DataFrame.from_dict(val_predictions, orient="index")
+def compute_cross_val_weighted_murmur_accuracy(val_predictions,printl=True):
+    target_allpatient=[]
+    output_allpatient=[]
+    
+    df = pd.DataFrame.from_dict(val_predictions, orient="index")
 
     # Define order of classes in confusion matrix (and corresponding score weights)
-    # class_order = ["Present", "Absent"]# "Unknown",
+    class_order = ["Present", "Absent"]# "Unknown",
     # matrix_weights = np.asarray([
     #     [5, 3, 1],
     #     [5, 3, 1],
     #     [5, 3, 1]
     # ]).astype(float)
 
-    # conf_matrix = sklearn.metrics.confusion_matrix(df.label, df.prediction, labels=class_order).T
-    test_input, test_target = torch.tensor(output_all), torch.tensor(target_all)
+    conf_matrix = sklearn.metrics.confusion_matrix(df.label, df.prediction, labels=class_order).T
+    target_all=df.label.values.tolist()
+    output_all=df.prediction.values.tolist()
+    for idx in range(len(target_all)):
+        target=target_all[idx]
+        a=1 if target=='Present' else 0
+        target_allpatient.append(a)
+        output=output_all[idx]
+        b=1 if output=='Present' else 0
+        output_allpatient.append(b)
+    test_input, test_target = torch.tensor(output_allpatient), torch.tensor(target_allpatient)
     test_auprc = binary_auprc(test_input, test_target)
     test_auroc = binary_auroc(test_input, test_target)
     test_acc = binary_accuracy(test_input, test_target)
-    test_f1 = binary_f1_score(test_input, test_target)
+    f1 = binary_f1_score(test_input, test_target)
     # test_cm = binary_confusion_matrix(test_input, test_target)
-    print(f"acc:{test_acc}\nroc:{test_auroc}\nprc{test_auprc}\nf1:{test_f1}")
+    print(f"acc:{test_acc:.3%}\nroc:{test_auroc:.3f}\nprc{test_auprc:.3f}\nf1:{f1:.3f}")
     
-    # if print:
-    #     print_confusion_matrix(conf_matrix, class_order)
+    if printl:
+        print_confusion_matrix(conf_matrix, class_order)
     # weighted_conf = matrix_weights * conf_matrix
     # if print:
     #     print_confusion_matrix(weighted_conf.astype(int), class_order)
