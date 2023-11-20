@@ -87,7 +87,6 @@ def run_challenge_model(model, data, recordings, verbose):
         _, _, healthy_conf, murmur_conf, murmur_timing = segmenter.double_duration_viterbi(posteriors, model[0]["network"].output_fs)
         location_predictions[name].append(murmur_conf - healthy_conf)
         location_signal_quals[name].append(max(murmur_conf, healthy_conf))
-
     #  TODO: perhaps do not mean.
     full_features = {f"conf_difference_{k}": np.mean(v) for k, v in location_predictions.items()}
     for k, v in location_signal_quals.items():
