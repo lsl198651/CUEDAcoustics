@@ -165,7 +165,9 @@ def train_challenge_model_full(data_folder, model_folder, verbose, load_old_file
     # 看下这个数据多少
     # 分折
     patient_df = create_folds(patient_df)#942*11
-
+    a=patient_df.val_fold
+    idx=a.index
+    folds=a.values
     # ### Part 1 ###
     # Train cross-validated neural network to predict heart sound category at each timestep
 

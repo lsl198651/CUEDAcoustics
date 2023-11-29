@@ -27,6 +27,6 @@ if __name__ == '__main__':
     # else:
     #     verbose = 1
     data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
-    model_folder=r'D:\Shilong\murmur\00_code\CUEDAcoustics2\model'
+    model_folder=r'D:\Shilong\murmur\00_Code\LM\CUEDAcoustics\model'
 
     train_challenge_model(data_folder, model_folder, verbose=2) ### Teams: Implement this function!!!
